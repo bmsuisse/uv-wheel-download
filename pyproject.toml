@@ -7,11 +7,16 @@ name = "uv-wheel-download"
 version = "0.1.0"
 description = "Download every wheel/sdist pinned in uv.lock into a local folder for offline installs (a pip-free `pip download`)"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "packaging>=24.0",
     "requests>=2.32.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/bmsuisse/uv-wheel-download"
 
 [project.scripts]
 uv-wheel-download = "uv_wheel_download.cli:main"
