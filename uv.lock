@@ -303,7 +303,7 @@ wheels = [
 ]
 
 [[package]]
-name = "uv-wheelhouse"
+name = "uv-wheel-download"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

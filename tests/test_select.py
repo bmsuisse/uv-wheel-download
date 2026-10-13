@@ -1,7 +1,7 @@
 import pytest
 from packaging.tags import parse_tag
 
-from uv_wheelhouse.select import Target, select
+from uv_wheel_download.select import Target, select
 
 
 def entry(name: str, h: str = "a" * 64) -> dict:

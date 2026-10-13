@@ -1,4 +1,4 @@
-"""uv-wheelhouse: fill a folder with the wheels pinned in uv.lock, for `pip install --no-index --find-links`."""
+"""uv-wheel-download: fill a folder with the wheels pinned in uv.lock, for `pip install --no-index --find-links`."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from packaging.tags import parse_tag
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from uv_wheelhouse.select import Download, Target, select
+from uv_wheel_download.select import Download, Target, select
 
 # Azure Artifacts accepts the pipeline's System.AccessToken as the password of any user name.
 ADO_HOST = "pkgs.dev.azure.com"
@@ -43,7 +43,7 @@ def run(cmd: list[str], cwd: str | Path | None = None, env: dict[str, str] | Non
     try:
         result = subprocess.run(cmd, check=False, cwd=cwd, env=env, capture_output=True, text=True)
     except FileNotFoundError:
-        sys.exit(f"error: {cmd[0]!r} not found; uv-wheelhouse needs uv on PATH")
+        sys.exit(f"error: {cmd[0]!r} not found; uv-wheel-download needs uv on PATH")
     if result.returncode:
         sys.exit(f"error: {' '.join(cmd[:3])} failed:\n{result.stderr.strip()}")
     return result.stdout
@@ -149,7 +149,7 @@ def positive_int(value: str) -> int:
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="uv-wheelhouse",
+        prog="uv-wheel-download",
         allow_abbrev=False,
         description="Download all packages pinned in uv.lock into a folder and write an offline requirements.txt. "
         "Arguments after `--` go to `uv export`; --no-dev is added unless you pick dependency groups yourself.",
@@ -183,7 +183,7 @@ def main(argv: list[str] | None = None) -> int:
     for note in notes:
         print(f"note: {note}", file=sys.stderr)
 
-    store = Path(run_uv("cache", "dir").strip()) / "wheelhouse"
+    store = Path(run_uv("cache", "dir").strip()) / "wheel-download"
     dest.mkdir(parents=True, exist_ok=True)
     session = make_session()
 

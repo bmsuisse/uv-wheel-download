@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from packaging.tags import parse_tag
 
-from uv_wheelhouse import cli
-from uv_wheelhouse.select import Target
+from uv_wheel_download import cli
+from uv_wheel_download.select import Target
 
 WHEEL = b"pretend wheel"
 SHA = hashlib.sha256(WHEEL).hexdigest()
@@ -117,7 +117,7 @@ def test_main_downloads_and_writes_offline_requirements(monkeypatch, tmp_path: P
     assert run_main(monkeypatch, tmp_path, wheel_server, ["good-1-py3-none-any.whl"]) == 0
     assert (tmp_path / "deps" / "good-1-py3-none-any.whl").read_bytes() == WHEEL
     assert (tmp_path / "out" / "requirements.txt").read_text() == "--no-index\n--find-links ../deps\ngood==1\n"
-    assert (tmp_path / "uvcache" / "wheelhouse" / SHA / "good-1-py3-none-any.whl").exists()
+    assert (tmp_path / "uvcache" / "wheel-download" / SHA / "good-1-py3-none-any.whl").exists()
 
 
 def test_main_reports_all_failures_and_writes_no_requirements(monkeypatch, tmp_path: Path, wheel_server, capsys):

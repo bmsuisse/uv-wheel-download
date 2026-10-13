@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "uv-wheelhouse"
+name = "uv-wheel-download"
 version = "0.1.0"
 description = "Download every wheel/sdist pinned in uv.lock into a local folder for offline installs (a pip-free `pip download`)"
 readme = "README.md"
@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-uv-wheelhouse = "uv_wheelhouse.cli:main"
+uv-wheel-download = "uv_wheel_download.cli:main"
 
 [dependency-groups]
 dev = [
@@ -26,7 +26,7 @@ test = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["uv_wheelhouse"]
+packages = ["uv_wheel_download"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

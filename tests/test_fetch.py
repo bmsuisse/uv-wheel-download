@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 import requests
 
-from uv_wheelhouse.cli import fetch
-from uv_wheelhouse.select import Download
+from uv_wheel_download.cli import fetch
+from uv_wheel_download.select import Download
 
 PAYLOAD = b"not really a wheel"
 
