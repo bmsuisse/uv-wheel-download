@@ -172,7 +172,9 @@ def main(argv: list[str] | None = None) -> int:
 
     export = args.export_args
 
-    lock = tomllib.loads(run_uv("export", "--format", "pylock.toml", "--no-emit-project", *export, cwd=project))
+    # The lock export never needs the project itself; uv rejects the flag twice, so only add it if the caller didn't.
+    lock_args = export if "--no-emit-project" in export else ["--no-emit-project", *export]
+    lock = tomllib.loads(run_uv("export", "--format", "pylock.toml", *lock_args, cwd=project))
     requirements = run_uv("export", "--format", "requirements.txt", "--no-hashes", *export, cwd=project)
 
     target = probe_target(args.python, project)

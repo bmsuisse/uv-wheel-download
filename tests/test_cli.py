@@ -85,7 +85,9 @@ def wheel_server():
     httpd.shutdown()
 
 
-def run_main(monkeypatch, tmp_path: Path, base: str, filenames: list[str]) -> int:
+def run_main(
+    monkeypatch, tmp_path: Path, base: str, filenames: list[str], extra: list[str] = (), calls: list | None = None
+) -> int:
     packages = "".join(
         f'[[packages]]\nname = "{n.split("-")[0]}"\nversion = "1"\n'
         f'wheels = [{{ url = "{base}/{n}", hashes = {{ sha256 = "{SHA}" }} }}]\n\n'
@@ -97,6 +99,8 @@ def run_main(monkeypatch, tmp_path: Path, base: str, filenames: list[str]) -> in
     }
 
     def fake_uv(*args: str, cwd=None) -> str:
+        if calls is not None:
+            calls.append(args)
         if args[0] == "export":
             return outputs[args[args.index("--format") + 1]]
         assert args[:2] == ("cache", "dir")
@@ -109,7 +113,7 @@ def run_main(monkeypatch, tmp_path: Path, base: str, filenames: list[str]) -> in
     monkeypatch.setattr(cli, "run_uv", fake_uv)
     monkeypatch.setattr(cli, "probe_target", lambda python, project: target)
     monkeypatch.chdir(tmp_path)
-    return cli.main(["-d", "deps", "-r", "out/requirements.txt"])
+    return cli.main(["-d", "deps", "-r", "out/requirements.txt", *extra])
 
 
 def test_main_downloads_and_writes_offline_requirements(monkeypatch, tmp_path: Path, wheel_server):
@@ -128,3 +132,23 @@ def test_main_reports_all_failures_and_writes_no_requirements(monkeypatch, tmp_p
     assert "bad-1-py3-none-any.whl" in err and "worse-1-py3-none-any.whl" in err
     assert not (tmp_path / "out" / "requirements.txt").exists()
     assert (tmp_path / "deps" / "good-1-py3-none-any.whl").exists()
+
+
+def test_no_emit_project_is_passed_to_uv_export_only_once(monkeypatch, tmp_path: Path, wheel_server):
+    (tmp_path / "out").mkdir()
+    calls: list = []
+    names = ["good-1-py3-none-any.whl"]
+    assert run_main(monkeypatch, tmp_path, wheel_server, names, ["--", "--no-emit-project"], calls) == 0
+    exports = [c for c in calls if c[0] == "export"]
+    assert len(exports) == 2
+    assert all(c.count("--no-emit-project") == 1 for c in exports)
+    # the requirements export keeps the user's choice; the lock export always has it
+    assert "--no-emit-project" in exports[0] and "--no-emit-project" in exports[1]
+
+
+def test_requirements_export_keeps_project_by_default(monkeypatch, tmp_path: Path, wheel_server):
+    (tmp_path / "out").mkdir()
+    calls: list = []
+    run_main(monkeypatch, tmp_path, wheel_server, ["good-1-py3-none-any.whl"], calls=calls)
+    lock_call, requirements_call = [c for c in calls if c[0] == "export"]
+    assert "--no-emit-project" in lock_call and "--no-emit-project" not in requirements_call

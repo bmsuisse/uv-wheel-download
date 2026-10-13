@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "uv-wheel-download"
-version = "0.1.0"
+version = "0.1.1"
 description = "Download every wheel/sdist pinned in uv.lock into a local folder for offline installs (a pip-free `pip download`)"
 readme = "README.md"
 license = "MIT"
