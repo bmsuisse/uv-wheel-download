@@ -1,5 +1,6 @@
 import hashlib
 import threading
+from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -13,11 +14,11 @@ PAYLOAD = b"not really a wheel"
 
 
 @pytest.fixture
-def server():
+def server() -> Iterator[tuple[str, list[str]]]:
     hits: list[str] = []
 
     class Handler(BaseHTTPRequestHandler):
-        def do_GET(self):
+        def do_GET(self) -> None:
             hits.append(self.path)
             body = PAYLOAD if self.path != "/corrupt.whl" else b"corrupted"
             self.send_response(200)
@@ -25,7 +26,7 @@ def server():
             self.end_headers()
             self.wfile.write(body)
 
-        def log_message(self, *args):
+        def log_message(self, *args: object, **kwargs: object) -> None:
             pass
 
     httpd = HTTPServer(("127.0.0.1", 0), Handler)
@@ -38,7 +39,7 @@ def item(base: str, filename: str = "p-1-py3-none-any.whl") -> Download:
     return Download("p", filename, f"{base}/{filename}", hashlib.sha256(PAYLOAD).hexdigest())
 
 
-def test_download_then_cache_then_present(server, tmp_path: Path):
+def test_download_then_cache_then_present(server: tuple[str, list[str]], tmp_path: Path) -> None:
     base, hits = server
     dest, store = tmp_path / "dest", tmp_path / "store"
     dest.mkdir()
@@ -52,7 +53,7 @@ def test_download_then_cache_then_present(server, tmp_path: Path):
     assert len(hits) == 1
 
 
-def test_hash_mismatch_is_rejected_and_not_cached(server, tmp_path: Path):
+def test_hash_mismatch_is_rejected_and_not_cached(server: tuple[str, list[str]], tmp_path: Path) -> None:
     base, _ = server
     dest, store = tmp_path / "dest", tmp_path / "store"
     dest.mkdir()

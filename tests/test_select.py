@@ -8,7 +8,7 @@ def entry(name: str, h: str = "a" * 64) -> dict:
     return {"url": f"https://files.example/{name}", "hashes": {"sha256": h}}
 
 
-def target(python="3.14.0", *tags: str) -> Target:
+def target(python: str = "3.14.0", *tags: str) -> Target:
     """A Linux x86_64 CPython target; the whole marker environment is explicit so tests don't depend on the host."""
     env = {
         "implementation_name": "cpython",
@@ -33,7 +33,7 @@ def lock(*packages: dict, requires_python: str = ">=3.14") -> dict:
     return {"requires-python": requires_python, "packages": list(packages)}
 
 
-def test_picks_best_ranked_wheel_not_first_listed():
+def test_picks_best_ranked_wheel_not_first_listed() -> None:
     pkg = {
         "name": "x",
         "wheels": [
@@ -48,79 +48,79 @@ def test_picks_best_ranked_wheel_not_first_listed():
     assert notes == []
 
 
-def test_marker_excludes_package():
+def test_marker_excludes_package() -> None:
     pkg = {"name": "winonly", "marker": "sys_platform == 'win32'", "wheels": [entry("w-1-py3-none-any.whl")]}
     assert select(lock(pkg), target("3.14.0", *LINUX))[0] == []
 
 
-def test_falls_back_to_sdist_with_note():
+def test_falls_back_to_sdist_with_note() -> None:
     pkg = {"name": "x", "wheels": [entry("x-1-cp314-cp314-win_amd64.whl")], "sdist": entry("x-1.tar.gz")}
     downloads, notes = select(lock(pkg), target("3.14.0", *LINUX))
     assert [d.filename for d in downloads] == ["x-1.tar.gz"]
     assert "sdist" in notes[0]
 
 
-def test_sdist_only_has_no_note():
+def test_sdist_only_has_no_note() -> None:
     downloads, notes = select(lock({"name": "x", "sdist": entry("x-1.tar.gz")}), target("3.14.0", *LINUX))
     assert [d.filename for d in downloads] == ["x-1.tar.gz"] and notes == []
 
 
-def test_local_directory_skipped_with_note():
+def test_local_directory_skipped_with_note() -> None:
     downloads, notes = select(lock({"name": "mine", "directory": {"path": "lib"}}), target("3.14.0", *LINUX))
     assert downloads == [] and "mine" in notes[0]
 
 
-def test_no_compatible_file_is_an_error():
+def test_no_compatible_file_is_an_error() -> None:
     pkg = {"name": "x", "wheels": [entry("x-1-cp314-cp314-win_amd64.whl")]}
     with pytest.raises(ValueError, match="x"):
         select(lock(pkg), target("3.14.0", *LINUX))
 
 
-def test_requires_python_mismatch_is_an_error():
+def test_requires_python_mismatch_is_an_error() -> None:
     with pytest.raises(ValueError, match="requires Python"):
         select(lock(requires_python=">=3.14"), target("3.13.2", *LINUX))
 
 
-def test_missing_hash_is_an_error():
+def test_missing_hash_is_an_error() -> None:
     pkg = {"name": "x", "wheels": [{"url": "https://files.example/x-1-py3-none-any.whl"}]}
     with pytest.raises(ValueError, match="sha256"):
         select(lock(pkg), target("3.14.0", *LINUX))
 
 
-def test_filename_is_unquoted_from_url():
+def test_filename_is_unquoted_from_url() -> None:
     pkg = {"name": "x", "sdist": entry("x%2B1.tar.gz")}
     assert select(lock(pkg), target("3.14.0", *LINUX))[0][0].filename == "x+1.tar.gz"
 
 
-def test_prerelease_interpreter_satisfies_lower_bound():
+def test_prerelease_interpreter_satisfies_lower_bound() -> None:
     pkg = {"name": "x", "sdist": entry("x-1.tar.gz")}
     assert select(lock(pkg), target("3.14.0rc1", *LINUX))[0]
 
 
-def test_package_requires_python_is_honoured():
+def test_package_requires_python_is_honoured() -> None:
     pkg = {"name": "old", "requires-python": "<3.14", "sdist": entry("old-1.tar.gz")}
     assert select(lock(pkg), target("3.14.0", *LINUX))[0] == []
 
 
 @pytest.mark.parametrize("name", ["..%2F..%2Fevil.whl", "a%5Cb.whl", ".."])
-def test_path_traversal_in_file_name_is_rejected(name):
+def test_path_traversal_in_file_name_is_rejected(name: str) -> None:
     pkg = {"name": "x", "sdist": entry(name)}
     with pytest.raises(ValueError, match="file name"):
         select(lock(pkg), target("3.14.0", *LINUX))
 
 
 @pytest.mark.parametrize("digest", ["../x", "A" * 64, "a" * 63])
-def test_malformed_sha256_is_rejected(digest):
+def test_malformed_sha256_is_rejected(digest: str) -> None:
     pkg = {"name": "x", "sdist": entry("x-1.tar.gz", digest)}
     with pytest.raises(ValueError, match="sha256"):
         select(lock(pkg), target("3.14.0", *LINUX))
 
 
-def test_wheel_without_url_is_a_value_error_not_key_error():
+def test_wheel_without_url_is_a_value_error_not_key_error() -> None:
     pkg = {"name": "x", "wheels": [{"path": "x-1-py3-none-any.whl", "hashes": {"sha256": "a" * 64}}]}
     with pytest.raises(ValueError):
         select(lock(pkg), target("3.14.0", *LINUX))
 
 
-def test_lock_without_packages_selects_nothing():
+def test_lock_without_packages_selects_nothing() -> None:
     assert select({"requires-python": ">=3.14"}, target("3.14.0", *LINUX)) == ([], [])

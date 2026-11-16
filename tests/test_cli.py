@@ -1,6 +1,7 @@
 import hashlib
 import sys
 import threading
+from collections.abc import Iterator, Sequence
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -14,35 +15,35 @@ WHEEL = b"pretend wheel"
 SHA = hashlib.sha256(WHEEL).hexdigest()
 
 
-def test_default_export_args_exclude_dev_and_freeze():
+def test_default_export_args_exclude_dev_and_freeze() -> None:
     assert cli.build_export_args([]) == ["--no-dev", "--frozen"]
 
 
-def test_group_selection_keeps_no_dev_default():
+def test_group_selection_keeps_no_dev_default() -> None:
     # `--group build` alone must not pull in the dev group
     assert cli.build_export_args(["--", "--group", "build"]) == ["--no-dev", "--group", "build", "--frozen"]
 
 
 @pytest.mark.parametrize("flag", ["--only-dev", "--all-groups", "--dev", "--no-default-groups", "--no-dev"])
-def test_explicit_group_flags_are_left_alone(flag):
+def test_explicit_group_flags_are_left_alone(flag: str) -> None:
     assert cli.build_export_args([flag]) == [flag, "--frozen"]
 
 
-def test_locked_replaces_frozen():
+def test_locked_replaces_frozen() -> None:
     assert cli.build_export_args(["--locked"]) == ["--no-dev", "--locked"]
 
 
-def test_parse_args_splits_ours_from_uv_export():
+def test_parse_args_splits_ours_from_uv_export() -> None:
     args = cli.parse_args(["-d", "deps", "--", "--package", "mdmapp"])
     assert args.dest == "deps" and args.export_args == ["--no-dev", "--package", "mdmapp", "--frozen"]
 
 
-def test_jobs_must_be_positive():
+def test_jobs_must_be_positive() -> None:
     with pytest.raises(SystemExit):
         cli.parse_args(["-j", "0"])
 
 
-def test_relative_python_is_made_absolute(tmp_path: Path, monkeypatch):
+def test_relative_python_is_made_absolute(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     (tmp_path / "bin").mkdir()
     (tmp_path / "bin" / "python").touch()
     monkeypatch.chdir(tmp_path)
@@ -51,7 +52,7 @@ def test_relative_python_is_made_absolute(tmp_path: Path, monkeypatch):
     assert cli.resolve_python(None) is None
 
 
-def test_token_only_sent_to_ado_over_https(monkeypatch):
+def test_token_only_sent_to_ado_over_https(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SYSTEM_ACCESSTOKEN", "secret")
     assert cli.auth_for("https://pkgs.dev.azure.com/o/x.whl") == ("VssSessionToken", "secret")
     assert cli.auth_for("http://pkgs.dev.azure.com/o/x.whl") is None
@@ -61,22 +62,22 @@ def test_token_only_sent_to_ado_over_https(monkeypatch):
     assert cli.auth_for("https://pkgs.dev.azure.com/o/x.whl") is None
 
 
-def test_probe_target_reports_the_given_interpreter(tmp_path: Path):
+def test_probe_target_reports_the_given_interpreter(tmp_path: Path) -> None:
     target = cli.probe_target(sys.executable, tmp_path)
     assert target.env["python_full_version"].startswith(f"{sys.version_info.major}.{sys.version_info.minor}")
     assert target.tags
 
 
 @pytest.fixture
-def wheel_server():
+def wheel_server() -> Iterator[str]:
     class Handler(BaseHTTPRequestHandler):
-        def do_GET(self):
+        def do_GET(self) -> None:
             self.send_response(200 if self.path.endswith("good-1-py3-none-any.whl") else 404)
             self.send_header("Content-Length", str(len(WHEEL)))
             self.end_headers()
             self.wfile.write(WHEEL)
 
-        def log_message(self, *args):
+        def log_message(self, *args: object, **kwargs: object) -> None:
             pass
 
     httpd = HTTPServer(("127.0.0.1", 0), Handler)
@@ -86,7 +87,12 @@ def wheel_server():
 
 
 def run_main(
-    monkeypatch, tmp_path: Path, base: str, filenames: list[str], extra: list[str] = (), calls: list | None = None
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    base: str,
+    filenames: list[str],
+    extra: Sequence[str] = (),
+    calls: list | None = None,
 ) -> int:
     packages = "".join(
         f'[[packages]]\nname = "{n.split("-")[0]}"\nversion = "1"\n'
@@ -98,7 +104,7 @@ def run_main(
         "requirements.txt": "good==1\n",
     }
 
-    def fake_uv(*args: str, cwd=None) -> str:
+    def fake_uv(*args: str, cwd: str | Path | None = None) -> str:
         if calls is not None:
             calls.append(args)
         if args[0] == "export":
@@ -116,7 +122,9 @@ def run_main(
     return cli.main(["-d", "deps", "-r", "out/requirements.txt", *extra])
 
 
-def test_main_downloads_and_writes_offline_requirements(monkeypatch, tmp_path: Path, wheel_server):
+def test_main_downloads_and_writes_offline_requirements(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, wheel_server: str
+) -> None:
     (tmp_path / "out").mkdir()
     assert run_main(monkeypatch, tmp_path, wheel_server, ["good-1-py3-none-any.whl"]) == 0
     assert (tmp_path / "deps" / "good-1-py3-none-any.whl").read_bytes() == WHEEL
@@ -124,7 +132,9 @@ def test_main_downloads_and_writes_offline_requirements(monkeypatch, tmp_path: P
     assert (tmp_path / "uvcache" / "wheel-download" / SHA / "good-1-py3-none-any.whl").exists()
 
 
-def test_main_reports_all_failures_and_writes_no_requirements(monkeypatch, tmp_path: Path, wheel_server, capsys):
+def test_main_reports_all_failures_and_writes_no_requirements(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, wheel_server: str, capsys: pytest.CaptureFixture[str]
+) -> None:
     (tmp_path / "out").mkdir()
     names = ["good-1-py3-none-any.whl", "bad-1-py3-none-any.whl", "worse-1-py3-none-any.whl"]
     assert run_main(monkeypatch, tmp_path, wheel_server, names) == 1
@@ -134,7 +144,9 @@ def test_main_reports_all_failures_and_writes_no_requirements(monkeypatch, tmp_p
     assert (tmp_path / "deps" / "good-1-py3-none-any.whl").exists()
 
 
-def test_no_emit_project_is_passed_to_uv_export_only_once(monkeypatch, tmp_path: Path, wheel_server):
+def test_no_emit_project_is_passed_to_uv_export_only_once(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, wheel_server: str
+) -> None:
     (tmp_path / "out").mkdir()
     calls: list = []
     names = ["good-1-py3-none-any.whl"]
@@ -146,7 +158,9 @@ def test_no_emit_project_is_passed_to_uv_export_only_once(monkeypatch, tmp_path:
     assert "--no-emit-project" in exports[0] and "--no-emit-project" in exports[1]
 
 
-def test_requirements_export_keeps_project_by_default(monkeypatch, tmp_path: Path, wheel_server):
+def test_requirements_export_keeps_project_by_default(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, wheel_server: str
+) -> None:
     (tmp_path / "out").mkdir()
     calls: list = []
     run_main(monkeypatch, tmp_path, wheel_server, ["good-1-py3-none-any.whl"], calls=calls)
