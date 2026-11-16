@@ -192,7 +192,7 @@ def main(argv: list[str] | None = None) -> int:
     def work(item: Download) -> tuple[Download, str, str | None]:
         try:
             return item, fetch(session, item, dest, store), None
-        except Exception as e:  # noqa: BLE001 - collect, so one bad file does not hide the rest
+        except Exception as e:
             return item, "", str(e) or type(e).__name__
 
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
