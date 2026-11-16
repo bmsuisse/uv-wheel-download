@@ -33,6 +33,10 @@ test = [
 [tool.hatch.build.targets.wheel]
 packages = ["uv_wheel_download"]
 
+[tool.uv]
+# Dependency cooldown: releases younger than 5 days are not resolved (relative span, never an absolute date).
+exclude-newer = "5 days"
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 
