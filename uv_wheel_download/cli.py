@@ -128,7 +128,7 @@ def fetch(session: requests.Session, item: Download, dest: Path, store: Path) ->
                         digest.update(chunk)
             if digest.hexdigest() != item.sha256:
                 raise ValueError(f"sha256 mismatch for {item.url}: expected {item.sha256}, got {digest.hexdigest()}")
-            os.replace(partial, stored)
+            partial.replace(stored)
         finally:
             partial.unlink(missing_ok=True)
 

@@ -65,7 +65,8 @@ def select(lock: dict, target: Target) -> tuple[list[Download], list[str]]:
     requires_python = lock.get("requires-python")
     if requires_python and python not in SpecifierSet(requires_python):
         raise ValueError(
-            f"uv.lock requires Python {requires_python}, but the target interpreter is {target.env['python_full_version']}"
+            f"uv.lock requires Python {requires_python}, "
+            f"but the target interpreter is {target.env['python_full_version']}"
         )
 
     rank: dict[Tag, int] = {}
