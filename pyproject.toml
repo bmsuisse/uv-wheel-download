@@ -23,8 +23,8 @@ uv-wheel-download = "uv_wheel_download.cli:main"
 
 [dependency-groups]
 dev = [
-    "ty>=0.0.59",
-    "ruff>=0.14.0",
+    "ty>=0.0.100",
+    "ruff>=0.17.4",
 ]
 test = [
     "pytest>=9.1.0",
